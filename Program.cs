@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 class Program
 {
     // Set your API key here
-    const string API_KEY = "RGAPI-ab3dd2b1-a37d-42e2-a4fa-28eefeff51f9";
+    const string API_KEY = "APIKEYHERE";
 
     // Set the base URL for the API
     const string BASE_URL = "https://euw1.api.riotgames.com";
