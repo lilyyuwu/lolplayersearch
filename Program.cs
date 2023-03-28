@@ -70,102 +70,112 @@ class Program
 
 
 
-    static async Task Main(string[] args)
+static async Task Main(string[] args)
+{
+    // Prompt the user to enter a summoner name
+    Console.Write("Enter a summoner name: ");
+    string summonerName = Console.ReadLine();
+
+    // Call the 'GetSummonerByName' function with the given summoner name and await its response
+    dynamic summonerData = await GetSummonerByName(summonerName);
+
+    // Check if the summoner data was successfully retrieved
+    if (summonerData.ValueKind != JsonValueKind.Null)
     {
-        Console.Write("Enter a summoner name: ");
-        string summonerName = Console.ReadLine();
-
-        dynamic summonerData = await GetSummonerByName(summonerName);
-        if (summonerData.ValueKind != JsonValueKind.Null)
+        // Retrieve the summoner name from the summoner data object
+        string name;
+        if (summonerData.TryGetProperty("name", out JsonElement nameElement))
         {
-            string name;
-            if (summonerData.TryGetProperty("name", out JsonElement nameElement))
-            {
-                name = nameElement.GetString();
-                Console.WriteLine($"Summoner name: {name}");
-            }
-            else
-            {
-                Console.WriteLine("Summoner name not found.");
-            }
+            name = nameElement.GetString();
+            Console.WriteLine($"Summoner name: {name}");
+        }
+        else
+        {
+            Console.WriteLine("Summoner name not found.");
+        }
 
-            int summonerLevel;
-            if (summonerData.TryGetProperty("summonerLevel", out JsonElement levelElement))
-            {
-                summonerLevel = levelElement.GetInt32();
-                Console.WriteLine($"Summoner level: {summonerLevel}");
-            }
-            else
-            {
-                Console.WriteLine("Summoner level not found.");
-            }
+        // Retrieve the summoner level from the summoner data object
+        int summonerLevel;
+        if (summonerData.TryGetProperty("summonerLevel", out JsonElement levelElement))
+        {
+            summonerLevel = levelElement.GetInt32();
+            Console.WriteLine($"Summoner level: {summonerLevel}");
+        }
+        else
+        {
+            Console.WriteLine("Summoner level not found.");
+        }
 
-            string summonerId;
-            if (summonerData.TryGetProperty("id", out JsonElement idElement))
+        // Retrieve the summoner ID from the summoner data object and use it to get ranked stats
+        string summonerId;
+        if (summonerData.TryGetProperty("id", out JsonElement idElement))
+        {
+            summonerId = idElement.GetString();
+            HttpResponseMessage rankedStatsResponse = await GetRankedStatsBySummonerId(summonerId);
+            if (rankedStatsResponse != null)
             {
-                summonerId = idElement.GetString();
-                HttpResponseMessage rankedStatsResponse = await GetRankedStatsBySummonerId(summonerId);
-                if (rankedStatsResponse != null)
+                // Deserialize the JSON response and loop through the ranked stats data
+                string rankedStatsContent = await rankedStatsResponse.Content.ReadAsStringAsync();
+                JsonElement[] rankedStatsData = JsonSerializer.Deserialize<JsonElement[]>(rankedStatsContent);
+
+                foreach (JsonElement stat in rankedStatsData)
                 {
-                    string rankedStatsContent = await rankedStatsResponse.Content.ReadAsStringAsync();
-                    JsonElement[] rankedStatsData = JsonSerializer.Deserialize<JsonElement[]>(rankedStatsContent);
-
-                    foreach (JsonElement stat in rankedStatsData)
+                    // Retrieve the queue type, tier, rank, and LP from each ranked stat
+                    string queueType;
+                    if (stat.TryGetProperty("queueType", out JsonElement queueTypeElement))
                     {
-                        string queueType;
-                        if (stat.TryGetProperty("queueType", out JsonElement queueTypeElement))
-                        {
-                            queueType = queueTypeElement.GetString();
-                        }
-                        else
-                        {
-                            queueType = "Queue type not found.";
-                        }
-
-                        string tier;
-                        if (stat.TryGetProperty("tier", out JsonElement tierElement))
-                        {
-                            tier = tierElement.GetString();
-                        }
-                        else
-                        {
-                            tier = "Tier not found.";
-                        }
-
-                        string rank;
-                        if (stat.TryGetProperty("rank", out JsonElement rankElement))
-                        {
-                            rank = rankElement.GetString();
-                        }
-                        else
-                        {
-                            rank = "Rank not found.";
-                        }
-
-                        int leaguePoints;
-                        if (stat.TryGetProperty("leaguePoints", out JsonElement lpElement))
-                        {
-                            leaguePoints = lpElement.GetInt32();
-                        }
-                        else
-                        {
-                            leaguePoints = -1;
-                        }
-
-                        Console.WriteLine($"{queueType}: {tier} {rank} ({leaguePoints} LP)");
+                        queueType = queueTypeElement.GetString();
                     }
-                }
-                else
-                {
-                    Console.WriteLine("Ranked stats not found.");
+                    else
+                    {
+                        queueType = "Queue type not found.";
+                    }
+
+                    string tier;
+                    if (stat.TryGetProperty("tier", out JsonElement tierElement))
+                    {
+                        tier = tierElement.GetString();
+                    }
+                    else
+                    {
+                        tier = "Tier not found.";
+                    }
+
+                    string rank;
+                    if (stat.TryGetProperty("rank", out JsonElement rankElement))
+                    {
+                        rank = rankElement.GetString();
+                    }
+                    else
+                    {
+                        rank = "Rank not found.";
+                    }
+
+                    int leaguePoints;
+                    if (stat.TryGetProperty("leaguePoints", out JsonElement lpElement))
+                    {
+                        leaguePoints = lpElement.GetInt32();
+                    }
+                    else
+                    {
+                        leaguePoints = -1;
+                    }
+
+                    // Display the ranked stats for the current queue type
+                    Console.WriteLine($"{queueType}: {tier} {rank} ({leaguePoints} LP)");
                 }
             }
             else
             {
-                Console.WriteLine("Summoner ID not found.");
+                Console.WriteLine("Ranked stats not found.");
             }
         }
+        else
+        {
+            Console.WriteLine("Summoner ID not found.");
+        }
     }
+}
 
 
 }
